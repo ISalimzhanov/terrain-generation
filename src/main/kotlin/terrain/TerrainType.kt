@@ -1,11 +1,20 @@
 package terrain
 
-enum class TerrainType(
-    val id: Int,
-) {
-    WATER(0),
-    PLAIN(1),
-    SAND(2),
-    MOUNTAIN(3),
-    HILL(4),
+import com.fasterxml.jackson.annotation.JsonProperty
+
+enum class TerrainType {
+    @JsonProperty("WATER")
+    WATER,
+
+    @JsonProperty("PLAIN")
+    PLAIN,
+
+    @JsonProperty("SAND")
+    SAND,
+
+    @JsonProperty("MOUNTAIN")
+    MOUNTAIN,
+
+    @JsonProperty("HILL")
+    HILL,
 }
