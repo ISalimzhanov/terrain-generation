@@ -1,0 +1,28 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    mavenCentral()
+
+    maven {
+        url = uri("https://maven.jzy3d.org/releases/")
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+    implementation "org.jetbrains.kotlin:kotlin-script-runtime:1.5.31"
+    implementation "org.jzy3d:jzy3d-emul-gl:2.0.0"
+}
+
+test {
+    useJUnitPlatform()
+}
