@@ -3,8 +3,8 @@ package terrain
 import com.fasterxml.jackson.annotation.JsonValue
 
 data class Coordinate(
-    val x: Int,
-    val y: Int,
+    var x: Int,
+    var y: Int,
 ) {
     @Override
     @JsonValue

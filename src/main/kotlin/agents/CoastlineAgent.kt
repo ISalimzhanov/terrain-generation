@@ -1,10 +1,8 @@
 package agents
 
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
 import sensors.TerrainSensor
+import sensors.TerrainSensor.Companion.distance
 import terrain.Coordinate
 import terrain.TerrainType
 import kotlin.random.Random
@@ -19,94 +17,125 @@ class CoastlineAgent(
 
         data class CoastlineConfig(
             val landmassSize: Int,
+            val limit: Int,
         )
 
-        data class Edge(
-            val vertexFromInd: Int,
-            val vertexToInd: Int,
-            val weight: Int,
+    }
+
+    private val landmass = mutableListOf<Coordinate>()
+
+    private fun score(
+        coordinate: Coordinate,
+        attractor: Coordinate,
+        repulsor: Coordinate,
+    ): Long {
+        val de = minOf(
+            distance(coordinate, Coordinate(coordinate.x, 0)), //up
+            distance(coordinate, Coordinate(coordinate.x, sensor.getTerrainWidth() - 1)), //down
+            distance(coordinate, Coordinate(0, coordinate.y)), //left
+            distance(coordinate, Coordinate(sensor.getTerrainLength() - 1, coordinate.y)), //right
         )
-
-        class Graph(
-            private val vertices: List<Coordinate>,
-            private var edges: List<Edge>
-        ) {
-            private val dsu = IntArray(vertices.size) { it }//disjoint set union
-
-            init {
-                edges = edges.sortedBy { edge -> edge.weight }
-            }
-
-            private fun dsuGetRoot(v: Int, cnt: Int = 0): Int {
-                return when (val parentV = dsu[v]) {
-                    v -> v
-                    else -> dsuGetRoot(parentV, cnt + 1)
-                }
-            }
-
-            private fun dsuUnite(a: Int, b: Int) {
-                var rootA = dsuGetRoot(a)
-                var rootB = dsuGetRoot(b)
-                if (Random.nextBoolean()) {
-                    rootA = rootB.also { rootB = rootA }
-                }
-                dsu[rootA] = rootB
-            }
-
-            @DelicateCoroutinesApi
-            fun getSpanningTree(size: Int): List<Coordinate> {
-                val res = mutableListOf<Coordinate>()
-                for (e in edges) {
-                    if (res.size == size)
-                        break
-                    if (dsuGetRoot(e.vertexFromInd) != dsuGetRoot(e.vertexToInd)) {
-                        runBlocking {
-                            GlobalScope.async {
-                                if (vertices[e.vertexFromInd] !in res)
-                                    res.add(vertices[e.vertexFromInd])
-                                if (vertices[e.vertexToInd] !in res)
-                                    res.add(vertices[e.vertexToInd])
-                            }.await()
-                            GlobalScope.async {
-                                dsuUnite(e.vertexFromInd, e.vertexToInd)
-                            }.await()
-                        }
-                    }
-                }
-                return res
-            }
-        }
+        val dr = distance(coordinate, repulsor)
+        val da = distance(coordinate, attractor)
+        return dr - da + 2 * de
     }
 
     @DelicateCoroutinesApi
     override fun generate() {
-        val directions = listOf(Coordinate(0, -1), Coordinate(-1, 0))
-        val vertices = mutableListOf<Coordinate>()
-        val edges = mutableListOf<Edge>()
-        val l = sensor.getTerrainLength()
-        val w = sensor.getTerrainWidth()
-        for (x in 1 until w - 1) {
-            for (y in 1 until l - 1) {
-                val v = Coordinate(x, y)
-                vertices.add(v)
-                for (dir in directions) {
-                    val to = Coordinate(v.x + dir.x, v.y + dir.y)
-                    if (sensor.isValidCoordinate(to) && to.x != 0 && to.y != 0) {
-                        val vInd = vertices.size - 1
-                        val toInd = (to.x - 1) * (l - 2) + to.y - 1
-                        edges.add(Edge(vInd, toInd, Random.nextInt(100)))
+        val time = measureTimeMillis {
+            var maxScore = 0L
+            var bestPont: Coordinate? = null
+            for (i in 0..100) {
+                val point = Coordinate(
+                    Random.nextInt(0, sensor.getTerrainLength() - 1),
+                    Random.nextInt(0, sensor.getTerrainWidth() - 1),
+                )
+                val pointScore = score(point, point, point)
+                if (pointScore > maxScore) {
+                    maxScore = pointScore
+                    bestPont = point
+                }
+            }
+            landmass.add(bestPont!!)
+            sensor.setTerrainType(bestPont, TerrainType.PLAIN)
+            generate(bestPont, config.landmassSize - 1)
+        }
+        println("Execution time in milliseconds: $time")
+    }
+
+    fun generate(
+        seedPoint: Coordinate,
+        tokens: Int,
+    ) {
+        if (tokens >= config.limit) {
+            generate(landmass.random(), tokens / 2 + tokens % 2)
+            generate(landmass.random(), tokens / 2)
+        } else {
+            val randomDir = TerrainSensor.directions.random()
+            while (sensor.getTerrainType(seedPoint) != TerrainType.WATER) {
+                seedPoint.x += randomDir.x
+                seedPoint.y += randomDir.y
+            }
+            seedPoint.x -= randomDir.x
+            seedPoint.y -= randomDir.y
+            val attractor: Coordinate
+            val repulsor: Coordinate
+            if (Random.nextBoolean()) {
+                val left = Coordinate((0..seedPoint.x).random(), (0 until sensor.getTerrainWidth()).random())
+                val right = Coordinate(
+                    (seedPoint.x + 1 until sensor.getTerrainLength()).random(),
+                    (0 until sensor.getTerrainWidth()).random()
+                )
+                if (Random.nextBoolean()) {
+                    attractor = left
+                    repulsor = right
+                } else {
+                    attractor = right
+                    repulsor = left
+                }
+            } else {
+                val up = Coordinate((0 until sensor.getTerrainLength()).random(), (0..seedPoint.y).random())
+                val down = Coordinate(
+                    (0 until sensor.getTerrainLength()).random(),
+                    (seedPoint.y + 1 until sensor.getTerrainWidth()).random()
+                )
+                if (Random.nextBoolean()) {
+                    attractor = up
+                    repulsor = down
+                } else {
+                    attractor = down
+                    repulsor = up
+                }
+            }
+            var toGenerate = tokens
+            val newLands = mutableListOf(seedPoint)
+            while (toGenerate != 0) {
+                val point = newLands.random()
+                var maxScore = -(1e18).toLong()
+                var best: Coordinate? = null
+                for (dir in TerrainSensor.directions) {
+                    val v = Coordinate(point.x + dir.x, point.y + dir.y)
+                    if (!sensor.isValidCoordinate(v))
+                        continue
+                    if (sensor.getTerrainType(v) == TerrainType.PLAIN) {
+                        if(v !in newLands)
+                            newLands.add(v)
+                        continue
                     }
+                    val scoreV = score(v, attractor, repulsor)
+                    if (scoreV > maxScore) {
+                        maxScore = scoreV
+                        best = v
+                    }
+                }
+                if (best != null) {
+                    landmass.add(best)
+                    newLands.add(best)
+                    sensor.setTerrainType(best, TerrainType.PLAIN)
+                    toGenerate--
                 }
             }
         }
-        val graph = Graph(vertices, edges)
-        val time = measureTimeMillis {
-            val randomSpanningTree = graph.getSpanningTree(config.landmassSize)
-            for (v in randomSpanningTree) {
-                sensor.setTerrainType(v, TerrainType.PLAIN)
-            }
-        }
-        println("Execution time in milliseconds: $time")
     }
 
     override fun getName(): String {

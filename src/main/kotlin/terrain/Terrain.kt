@@ -21,12 +21,18 @@ data class Terrain(
         return config.length * 1L * config.width
     }
 
+    @JvmName("getConfig1")
+    @JsonProperty("terrainConfig")
+    private fun getConfig(): TerrainConfig {
+        return config
+    }
+
     companion object {
         data class TerrainConfig(
+            @JsonProperty("length")
             val length: Int,
+            @JsonProperty("width")
             val width: Int,
         )
-
-
     }
 }
