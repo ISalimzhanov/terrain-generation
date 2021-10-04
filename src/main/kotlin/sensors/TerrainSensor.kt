@@ -28,13 +28,29 @@ class TerrainSensor(private val terrain: Terrain) {
     fun getTerrainType(coordinate: Coordinate): TerrainType {
         if (!isValidCoordinate(coordinate))
             throw IndexOutOfBoundsException("not valid coordinate")
-        return terrain.terrainTypeMap[coordinate]!!
+        return terrain.terrainInfo[coordinate.x][coordinate.y].terrainType
     }
 
     fun setTerrainType(coordinate: Coordinate, terrainType: TerrainType) {
         if (!isValidCoordinate(coordinate))
             throw IndexOutOfBoundsException("not valid coordinate")
-        terrain.terrainTypeMap[coordinate] = terrainType
+        terrain.terrainInfo[coordinate.x][coordinate.y].terrainType = terrainType
+    }
+
+    fun getHeight(coordinate: Coordinate): Double {
+        if (!isValidCoordinate(coordinate))
+            throw IndexOutOfBoundsException("not valid coordinate")
+        return terrain.terrainInfo[coordinate.x][coordinate.y].height
+    }
+
+    fun setHeight(coordinate: Coordinate, height: Double) {
+        if (!isValidCoordinate(coordinate))
+            throw IndexOutOfBoundsException("not valid coordinate")
+        terrain.terrainInfo[coordinate.x][coordinate.y].height = height
+    }
+
+    fun onEdge(v: Coordinate): Boolean {
+        return v.x == 0 || v.y == 0 || v.x == terrain.config.length - 1 || v.y == terrain.config.width - 1
     }
 
     companion object {

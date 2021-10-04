@@ -8,12 +8,15 @@ data class Terrain(
     val config: TerrainConfig
 ) {
     @JsonProperty("terrain")
-    val terrainTypeMap = mutableMapOf<Coordinate, TerrainType>()
+    val terrainInfo = mutableListOf<MutableList<PointInfo>>()
 
     init {
-        for (x in 0 until config.length)
-            for (y in 0 until config.width)
-                terrainTypeMap[Coordinate(x, y)] = TerrainType.WATER
+        for (x in 0 until config.length) {
+            terrainInfo.add(mutableListOf())
+            for (y in 0 until config.width) {
+                terrainInfo[x].add(PointInfo(TerrainType.WATER, 0.0))
+            }
+        }
     }
 
     @JsonIgnore
@@ -33,6 +36,13 @@ data class Terrain(
             val length: Int,
             @JsonProperty("width")
             val width: Int,
+        )
+
+        data class PointInfo(
+            @JsonProperty("terrainType")
+            var terrainType: TerrainType,
+            @JsonProperty("height")
+            var height: Double,
         )
     }
 }
