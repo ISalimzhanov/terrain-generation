@@ -1,5 +1,6 @@
 import agents.BeachAgent
 import agents.CoastlineAgent
+import agents.MountainAgent
 import agents.SmoothingAgent
 import com.fasterxml.jackson.databind.ObjectMapper
 import sensors.TerrainSensor
@@ -13,7 +14,7 @@ fun main(args: Array<String>) {
 
     val sensor = TerrainSensor(terrain)
 
-    val coastlineConfig = CoastlineAgent.Companion.CoastlineConfig((terrain.getSquare() * 0.4).toInt(), 500, 10.0)
+    val coastlineConfig = CoastlineAgent.Companion.CoastlineConfig((terrain.getSquare() * 0.4).toInt(), 500, 5.0)
     val smoothingConfig = SmoothingAgent.Companion.SmoothingConfig(4)
     val beachConfig = BeachAgent.Companion.BeachConfig(
         mountainHeightLimit = 100.0,
@@ -22,10 +23,22 @@ fun main(args: Array<String>) {
         smoothingConfig = smoothingConfig,
         beachHeight = 3.0,
     )
+    val mountainConfig = MountainAgent.Companion.MountainConfig(
+        stepness = 3.5,
+        maxHeight = 100.0,
+        minHeight = 60.0,
+        directionSwitchFrequency = 1,
+        tokens = 4,
+        maxChainSize = 1000,
+    )
     val agents = listOf(
         CoastlineAgent(
             sensor = sensor,
             config = coastlineConfig,
+        ),
+        MountainAgent(
+            sensor = sensor,
+            config = mountainConfig,
         ),
         BeachAgent(
             sensor = sensor,

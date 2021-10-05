@@ -85,13 +85,6 @@ class BeachAgent(
                 randomCoastWalk(coast)
             }
         }
-        /*var cnt = 0
-        for (x in 0 until sensor.getTerrainLength())
-            for (y in 0 until sensor.getTerrainWidth())
-                if (used[x][y]) {
-                    cnt++
-                    SmoothingAgent.smooth(sensor, Coordinate(x, y), config.smoothingConfig.tokens)
-                }*/
         used.clear()
     }
 
