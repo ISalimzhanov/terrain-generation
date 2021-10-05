@@ -13,16 +13,21 @@ class MountainAgent(
     private val config: MountainConfig
 ) : Agent {
     companion object {
+        private val directions =
+            mutableListOf(Coordinate(1, 1), Coordinate(1, -1), Coordinate(-1, -1), Coordinate(-1, 1))
+
         private fun distance(x: Double, y: Double): Double {
             return sqrt(x * 1.0 * x + y * y)
         }
 
         private fun calcHeight(
             center: Coordinate, location: Coordinate,
-            regionLength: Int, regionWidth: Int,
             mountainHeight: Double, stepness: Double
         ): Double {
-            val d = distance((location.x - center.x) * 1.0 / regionLength, (location.y - center.y) * 1.0 / regionWidth)
+            val d = distance(
+                (location.x - center.x) * 1.0 / sqrt(mountainHeight),
+                (location.y - center.y) * 1.0 / sqrt(mountainHeight)
+            )
             return mountainHeight / (d.pow(stepness) + 1)
         }
 
@@ -37,28 +42,26 @@ class MountainAgent(
     }
 
     private fun isValidRegion(center: Coordinate): Boolean {
-        return sensor.isValidCoordinate(center) && sensor.getTerrainType(center) != TerrainType.WATER && sensor.getTerrainType(
-            center
-        ) != TerrainType.MOUNTAIN
+        if (!sensor.isValidCoordinate(center))
+            return false
+        return sensor.getTerrainType(center) != TerrainType.WATER && sensor.getHeight(center) < config.minHeight
     }
 
     private fun elevateWedge(center: Coordinate, mountainHeight: Double) {
-        val regionLength = sqrt(mountainHeight).roundToInt() * 2
+        val regionLength = (mountainHeight).roundToInt()
         val minX = center.x - regionLength / 2
         val maxX = center.x + (regionLength + 1) / 2
         val minY = center.y - regionLength / 2
-        val maxY = center.y - (regionLength + 1) / 2
+        val maxY = center.y + (regionLength + 1) / 2
         for (x in minX..maxX)
             for (y in minY..maxY) {
                 val location = Coordinate(x, y)
+                if (!isValidRegion(location) || sensor.getTerrainType(location) == TerrainType.WATER)
+                    continue
                 val height = calcHeight(
                     center, location,
-                    regionLength, regionLength,
                     mountainHeight, config.stepness
                 )
-                if(height > config.maxHeight){
-                    print("WTF")
-                }
                 sensor.setHeight(location, height)
                 sensor.setTerrainType(location, TerrainType.MOUNTAIN)
             }
@@ -76,7 +79,7 @@ class MountainAgent(
             var center = landmass.random()
             while (sensor.getTerrainType(center) == TerrainType.MOUNTAIN)
                 center = landmass.random()
-            val direction = TerrainSensor.directions.random()
+            val direction = directions.random()
             generate(
                 center,
                 direction,
@@ -93,27 +96,25 @@ class MountainAgent(
         mountainHeight: Double,
         chainSize: Int = 0
     ) {
-        elevateWedge(center, mountainHeight)
         if (chainSize == config.maxChainSize)
             return
+        elevateWedge(center, mountainHeight)
         val newHeight = Random.nextDouble(config.minHeight, config.maxHeight)
-        val regionLength = sqrt(newHeight).roundToInt()
+        val regionLength = (newHeight / 2).roundToInt()
         var newCenter = Coordinate(
-            center.x + direction.x * regionLength / 2,
-            center.y + direction.y * regionLength / 2,
+            center.x + direction.x * regionLength,
+            center.y + direction.y * regionLength,
         )
         if (directionSwitchTimer == 0 || !isValidRegion(newCenter)) {
-            val curDirectionIndex = TerrainSensor.directions.indexOf(direction)
-            for (i in 1..4 step 2) {
-                val newDirection = TerrainSensor.directions[(curDirectionIndex + i) % 4]
-                newCenter = Coordinate(
-                    center.x + newDirection.x * regionLength,
-                    center.y + newDirection.y * regionLength
-                )
-                if (isValidRegion(newCenter)) {
-                    generate(newCenter, newDirection, config.directionSwitchFrequency, newHeight, chainSize + 1)
-                    break
-                }
+            val curDirectionIndex = directions.indexOf(direction)
+            val newDirection = directions[(curDirectionIndex + 3) % 4]
+            newCenter = Coordinate(
+                center.x + newDirection.x * regionLength,
+                center.y + newDirection.y * regionLength,
+            )
+            val check = isValidRegion(newCenter)
+            if (check) {
+                generate(newCenter, newDirection, config.directionSwitchFrequency, newHeight, chainSize + 1)
             }
         } else {
             generate(

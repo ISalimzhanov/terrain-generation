@@ -1,7 +1,4 @@
-import agents.BeachAgent
-import agents.CoastlineAgent
-import agents.MountainAgent
-import agents.SmoothingAgent
+import agents.*
 import com.fasterxml.jackson.databind.ObjectMapper
 import sensors.TerrainSensor
 import terrain.Terrain
@@ -10,44 +7,52 @@ import java.io.File
 import kotlin.math.roundToInt
 
 fun main(args: Array<String>) {
-    val terrain = Terrain(Terrain.Companion.TerrainConfig(length = 500, width = 500))
+    val terrain = Terrain(Terrain.Companion.TerrainConfig(length = 512, width = 512))
 
     val sensor = TerrainSensor(terrain)
 
-    val coastlineConfig = CoastlineAgent.Companion.CoastlineConfig((terrain.getSquare() * 0.4).toInt(), 500, 5.0)
+    val continentConfig = ContinentAgent.Companion.ContinentConfig((terrain.getSquare() * 0.4).toInt(), 500, 5.0)
     val smoothingConfig = SmoothingAgent.Companion.SmoothingConfig(4)
     val beachConfig = BeachAgent.Companion.BeachConfig(
-        mountainHeightLimit = 100.0,
-        sizeWalk = (coastlineConfig.landmassSize * 0.005).roundToInt(),
+        sizeWalk = (continentConfig.landmassSize * 0.005).roundToInt(),
         frustrationRange = 0.1,
-        smoothingConfig = smoothingConfig,
-        beachHeight = 3.0,
+        beachHeight = 1.0,
     )
     val mountainConfig = MountainAgent.Companion.MountainConfig(
-        stepness = 3.5,
-        maxHeight = 100.0,
-        minHeight = 60.0,
-        directionSwitchFrequency = 1,
-        tokens = 4,
-        maxChainSize = 1000,
+        stepness = 5.0,
+        maxHeight = 20.0,
+        minHeight = 15.0,
+        directionSwitchFrequency = 3,
+        tokens = 1,
+        maxChainSize = 20,
+    )
+    val riverConfig = RiverAgent.Companion.RiverConfig(
+        tokens = 5,
+        minLength = 50,
+    )
+    val beachAgent = BeachAgent(
+        sensor = sensor,
+        config = beachConfig
     )
     val agents = listOf(
-        CoastlineAgent(
+        ContinentAgent(
             sensor = sensor,
-            config = coastlineConfig,
+            config = continentConfig,
         ),
         MountainAgent(
             sensor = sensor,
             config = mountainConfig,
         ),
-        BeachAgent(
+        beachAgent,
+        RiverAgent(
             sensor = sensor,
-            config = beachConfig
+            beachAgent = beachAgent,
+            config = riverConfig
         ),
         SmoothingAgent(
             sensor = sensor,
             config = smoothingConfig,
-        )
+        ),
     )
     for (agent in agents) {
         println("${agent.getName()} start generation")

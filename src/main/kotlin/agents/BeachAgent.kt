@@ -23,10 +23,8 @@ class BeachAgent(
 
     companion object {
         class BeachConfig(
-            val mountainHeightLimit: Double,
             val sizeWalk: Int,
             val frustrationRange: Double,
-            val smoothingConfig: SmoothingAgent.Companion.SmoothingConfig,
             val beachHeight: Double,
         )
     }
@@ -38,7 +36,7 @@ class BeachAgent(
         sensor.setHeight(location, height)
     }
 
-    private fun randomCoastWalk(coast: Coordinate) {
+    fun randomCoastWalk(coast: Coordinate) {
         val queue: Queue<Coordinate> = LinkedList()
         queue.add(coast)
         var cnt = 0
@@ -52,7 +50,8 @@ class BeachAgent(
                 val to = Coordinate(v.x + dir.x, v.y + dir.y)
                 if (!sensor.isValidCoordinate(to) || used[to.x][to.y])
                     continue
-                if (sensor.getTerrainType(to) == TerrainType.WATER || sensor.getHeight(to) > config.mountainHeightLimit)
+                val terrainType = sensor.getTerrainType(to)
+                if (terrainType == TerrainType.WATER || terrainType == TerrainType.MOUNTAIN)
                     continue
                 used[to.x][to.y] = true
                 queue.add(to)
@@ -84,8 +83,8 @@ class BeachAgent(
             if (!used[coast.x][coast.y]) {
                 randomCoastWalk(coast)
             }
+            sensor.setTerrainType(coast, TerrainType.COAST)
         }
-        used.clear()
     }
 
     override fun getName(): String {

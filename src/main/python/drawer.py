@@ -10,8 +10,11 @@ class Drawer:
         self.width = width
         self.terrain_type = terrain_type
         self.tiles = {
-            "WATER": cv2.imread('square_tiles/water/water.png', cv2.IMREAD_UNCHANGED),
-            "PLAIN": cv2.imread('square_tiles/plain/plain.png', cv2.IMREAD_UNCHANGED),
+            "WATER": cv2.imread('square_tiles/water/water.png'),
+            "PLAIN": cv2.imread('square_tiles/plain/plain.png'),
+            "MOUNTAIN": cv2.imread('square_tiles/mountains/mount1.png'),
+            "SAND": cv2.imread('square_tiles/desert/sand.png'),
+            "COAST": cv2.imread('square_tiles/desert/sand.png'),
         }
         self.tile_shape = self.tiles["PLAIN"].shape
 

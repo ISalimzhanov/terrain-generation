@@ -12,6 +12,9 @@ enum class TerrainType {
     @JsonProperty("SAND")
     SAND,
 
+    @JsonProperty("COAST")
+    COAST,
+
     @JsonProperty("MOUNTAIN")
     MOUNTAIN,
 

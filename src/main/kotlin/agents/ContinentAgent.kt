@@ -8,14 +8,14 @@ import terrain.TerrainType
 import kotlin.random.Random
 import kotlin.system.measureTimeMillis
 
-class CoastlineAgent(
+class ContinentAgent(
     private val sensor: TerrainSensor,
-    private val config: CoastlineConfig
+    private val config: ContinentConfig
 ) : Agent {
     companion object {
         const val name = "Coastline Agent"
 
-        data class CoastlineConfig(
+        data class ContinentConfig(
             val landmassSize: Int,
             val limit: Int,
             val landHeight: Double,
